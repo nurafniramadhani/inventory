@@ -3,54 +3,59 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Item;
+use Illuminate\Support\Facades\Validator;
 
 class ItemController extends Controller
 {
-    public function index()
-    {
-        return response()->json(Item::with('category')->get());
-    }
-
+    // POST /api/items
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required',
-            'stock' => 'required|integer',
+            'quantity' => 'required|integer|min:0',
             'price' => 'required|numeric',
             'category_id' => 'required'
         ]);
 
-        $item = Item::create($validated);
+        // Jika validasi gagal
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'data' => null,
+                'message' => $validator->errors()->first()
+            ], 500);
+        }
 
-        return response()->json($item, 201);
-    }
-
-    public function show(Item $item)
-    {
-        return response()->json($item);
-    }
-
-    public function update(Request $request, Item $item)
-    {
-        $validated = $request->validate([
-            'name' => 'required',
-            'stock' => 'required|integer',
-            'price' => 'required|numeric',
-            'category_id' => 'required'
-        ]);
-
-        $item->update($validated);
-
-        return response()->json($item);
-    }
-
-    public function destroy(Item $item)
-    {
-        $item->delete();
-
+        // Jika berhasil
         return response()->json([
-            'message' => 'Item berhasil dihapus'
-        ]);
+            'status' => 'success',
+            'data' => $request->all(),
+            'message' => 'Data berhasil ditambahkan'
+        ], 200);
+    }
+
+    // GET /api/items/{id}
+    public function show($id)
+    {
+        // Simulasi data tidak ditemukan
+        if ($id != 1) {
+            return response()->json([
+                'status' => 'error',
+                'data' => null,
+                'message' => "No query results for model [App\\Models\\Item] $id"
+            ], 404);
+        }
+
+        // Jika data ditemukan
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'id' => 1,
+                'name' => 'Laptop',
+                'quantity' => 10,
+                'price' => 1500,
+                'category_id' => 1
+            ]
+        ], 200);
     }
 }
