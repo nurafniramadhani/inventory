@@ -3,59 +3,62 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use App\Models\Item;
+use Illuminate\Support\Facades\Auth;
 
 class ItemController extends Controller
 {
+    // GET /api/items
+    public function index()
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => Item::all()
+        ], 200);
+    }
+
     // POST /api/items
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'name' => 'required',
-            'quantity' => 'required|integer|min:0',
+            'quantity' => 'required|integer',
             'price' => 'required|numeric',
             'category_id' => 'required'
         ]);
 
-        // Jika validasi gagal
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'data' => null,
-                'message' => $validator->errors()->first()
-            ], 500);
-        }
+        $item = Item::create($request->all());
 
-        // Jika berhasil
         return response()->json([
             'status' => 'success',
-            'data' => $request->all(),
-            'message' => 'Data berhasil ditambahkan'
-        ], 200);
+            'data' => $item
+        ], 201);
     }
 
-    // GET /api/items/{id}
-    public function show($id)
+    // DELETE /api/items/{id}
+    public function destroy($id)
     {
-        // Simulasi data tidak ditemukan
-        if ($id != 1) {
+        $user = Auth::user();
+
+        // cek role
+        if ($user->role !== 'admin') {
             return response()->json([
-                'status' => 'error',
-                'data' => null,
-                'message' => "No query results for model [App\\Models\\Item] $id"
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $item = Item::find($id);
+
+        if (!$item) {
+            return response()->json([
+                'message' => 'Item not found'
             ], 404);
         }
 
-        // Jika data ditemukan
+        $item->delete();
+
         return response()->json([
-            'status' => 'success',
-            'data' => [
-                'id' => 1,
-                'name' => 'Laptop',
-                'quantity' => 10,
-                'price' => 1500,
-                'category_id' => 1
-            ]
+            'message' => 'Item deleted successfully'
         ], 200);
     }
 }
