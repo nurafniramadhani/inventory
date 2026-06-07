@@ -2,63 +2,44 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Item;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\StoreItemRequest;
+use App\Http\Requests\UpdateItemRequest; 
+use App\Services\ItemService;
+use App\Http\Controllers\Api\BaseController; 
 
-class ItemController extends Controller
-{
-    // GET /api/items
-    public function index()
-    {
-        return response()->json([
-            'status' => 'success',
-            'data' => Item::all()
-        ], 200);
+class ItemController extends BaseController { 
+    protected ItemService $svc;
+
+    public function __construct(ItemService $svc){ 
+        $this->svc = $svc;
     }
 
-    // POST /api/items
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required',
-            'quantity' => 'required|integer',
-            'price' => 'required|numeric',
-            'category_id' => 'required'
-        ]);
-
-        $item = Item::create($request->all());
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $item
-        ], 201);
+    public function index(){
+        return $this->success($this->svc->all()); 
     }
 
-    // DELETE /api/items/{id}
-    public function destroy($id)
-    {
-        $user = Auth::user();
+    public function store(StoreItemRequest $req){ 
+        $item = $this->svc->create($req->validated()); 
+        return $this->success($item, "Item dibuat", 201); 
+    }
 
-        // cek role
-        if ($user->role !== 'admin') {
-            return response()->json([
-                'message' => 'Unauthorized'
-            ], 403);
+    public function show($id){
+        try {
+            $item = $this->svc->find($id);
+            return $this->success($item);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), 404); 
         }
+    }
 
-        $item = Item::find($id);
+    public function update(UpdateItemRequest $req, $id){ 
+        $item = $this->svc->update($id, $req->validated());
+        return $this->success($item, "Item diperbarui"); 
+    }
 
-        if (!$item) {
-            return response()->json([
-                'message' => 'Item not found'
-            ], 404);
-        }
-
-        $item->delete();
-
-        return response()->json([
-            'message' => 'Item deleted successfully'
-        ], 200);
+    public function destroy($id){
+        $this->svc->delete($id);
+        return $this->success(null, "Item dihapus", 204); 
     }
 }
+

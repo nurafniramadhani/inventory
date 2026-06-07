@@ -8,15 +8,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, string $role): Response
-    {
-        if (!$request->user() || $request->user()->role !== $role) {
+    public function handle(Request $request, Closure $next, string $role) {
+        $user = $request->user();
+        if (! $user || $user->role !== $role) {
             return response()->json([
-                'message' => 'Unauthorized'
+                'status' => 'error',
+                'data' => null,
+                'message' => 'Unauthorized. Role '.$role.' required.'
             ], 403);
         }
-
         return $next($request);
     }
 }
-
